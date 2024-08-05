@@ -32,7 +32,7 @@ public class Employee implements Serializable {
 
     private Integer status;
 
-    //@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    //NOTE 建议使用消息转换器 不推荐这种格式@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
 
     //@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

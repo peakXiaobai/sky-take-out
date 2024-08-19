@@ -11,9 +11,11 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @Author: Y-peak
@@ -32,6 +34,8 @@ public class DishController {
 
     @Autowired
     DishService dishService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 新增菜品
@@ -43,6 +47,9 @@ public class DishController {
     public Result<String> addDish(@RequestBody DishDTO dishDTO){
         log.info("新增菜品: {}",dishDTO);
         dishService.addDishWithFlavor(dishDTO);
+        //清理redis缓存数据, 如果默认新增菜品是停售可以不清理
+//        String key = "dish_" + dishDTO.getCategoryId();
+//        cleanCache(key);
         return Result.success();
     }
 
@@ -69,6 +76,9 @@ public class DishController {
     public Result<String> deleteDish(@RequestParam List<Long> ids){
         log.info("菜品批量删除: {}",ids);
         dishService.deleteBatch(ids);
+
+        //将redis缓存的所有菜品数据都删除
+        cleanCache("dish_*");
         return Result.success();
     }
 
@@ -95,6 +105,10 @@ public class DishController {
     public Result<String> updateDish(@RequestBody DishDTO dishDTO){
         log.info("修改菜品: {}",dishDTO);
         dishService.updateDishWithFlavor(dishDTO);
+
+        //可能影响一种分类，也可能影响两种分类（如果修改的是分类的话），这里简单写的因此都删除了
+        //将redis缓存的所有菜品数据都删除
+        cleanCache("dish_*");
         return Result.success();
     }
 
@@ -120,6 +134,14 @@ public class DishController {
     @ApiOperation("菜品起售停售")
     public Result<String> startOrStop(@PathVariable Integer status, Long id){
         dishService.startOrStop(status,id);
+
+        //将redis缓存的所有菜品数据都删除
+        cleanCache("dish_*");
         return Result.success();
+    }
+
+    private void cleanCache(String pattern){
+        Set keys = redisTemplate.keys(pattern);
+        redisTemplate.delete(keys);
     }
 }
